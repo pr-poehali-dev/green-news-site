@@ -142,6 +142,8 @@ export default function Index() {
   const [name, setName] = useState("");
   const [news, setNews] = useState<NewsItem[]>(initialNews);
   const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<NewsItem | null>(null);
   const [newContent, setNewContent] = useState({
     type: "news" as NewsItem["type"],
     title: "",
@@ -211,6 +213,41 @@ export default function Index() {
       title: "Успешно опубликовано!",
       description: `${newContent.type === "news" ? "Новость" : newContent.type === "article" ? "Статья" : newContent.type === "video" ? "Видео" : newContent.type === "photo" ? "Фоторепортаж" : newContent.type === "poster" ? "Афиша" : "Прогноз погоды"} добавлена на портал`
     });
+  };
+
+  const handleEditContent = () => {
+    if (!editingItem) return;
+    
+    if (!editingItem.title || !editingItem.excerpt || !editingItem.category) {
+      toast({
+        title: "Ошибка",
+        description: "Заполните все обязательные поля",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setNews(news.map(item => item.id === editingItem.id ? editingItem : item));
+    setIsEditDialogOpen(false);
+    setEditingItem(null);
+
+    toast({
+      title: "Изменения сохранены!",
+      description: "Контент успешно обновлен"
+    });
+  };
+
+  const handleDeleteContent = (id: string) => {
+    setNews(news.filter(item => item.id !== id));
+    toast({
+      title: "Удалено",
+      description: "Контент удален с портала"
+    });
+  };
+
+  const openEditDialog = (item: NewsItem) => {
+    setEditingItem({ ...item });
+    setIsEditDialogOpen(true);
   };
 
   const filteredNews = news.filter(item => {
@@ -556,6 +593,26 @@ export default function Index() {
                 <Badge className="absolute top-3 left-3 bg-white/90 text-foreground">
                   {item.category}
                 </Badge>
+                {currentUser?.role === "admin" && (
+                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-8 w-8 p-0"
+                      onClick={() => openEditDialog(item)}
+                    >
+                      <Icon name="Pencil" size={14} />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleDeleteContent(item.id)}
+                    >
+                      <Icon name="Trash2" size={14} />
+                    </Button>
+                  </div>
+                )}
                 {item.type === "video" && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -588,6 +645,83 @@ export default function Index() {
             </Card>
           ))}
         </div>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Редактировать контент</DialogTitle>
+              <DialogDescription>
+                Внесите изменения в публикацию
+              </DialogDescription>
+            </DialogHeader>
+            {editingItem && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-type">Тип контента</Label>
+                  <Select value={editingItem.type} onValueChange={(value: NewsItem["type"]) => setEditingItem({ ...editingItem, type: value })}>
+                    <SelectTrigger id="edit-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="news">Новость</SelectItem>
+                      <SelectItem value="article">Статья</SelectItem>
+                      <SelectItem value="video">Видео</SelectItem>
+                      <SelectItem value="photo">Фоторепортаж</SelectItem>
+                      <SelectItem value="poster">Афиша</SelectItem>
+                      <SelectItem value="weather">Погода</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-title">Заголовок *</Label>
+                  <Input
+                    id="edit-title"
+                    placeholder="Введите заголовок"
+                    value={editingItem.title}
+                    onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-excerpt">Краткое описание *</Label>
+                  <Textarea
+                    id="edit-excerpt"
+                    placeholder="Введите краткое описание"
+                    value={editingItem.excerpt}
+                    onChange={(e) => setEditingItem({ ...editingItem, excerpt: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-category">Категория *</Label>
+                  <Input
+                    id="edit-category"
+                    placeholder="Например: Экология, Спорт, Культура"
+                    value={editingItem.category}
+                    onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-image">URL изображения</Label>
+                  <Input
+                    id="edit-image"
+                    placeholder="https://example.com/image.jpg"
+                    value={editingItem.image}
+                    onChange={(e) => setEditingItem({ ...editingItem, image: e.target.value })}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={handleEditContent}>
+                    <Icon name="Save" size={16} className="mr-2" />
+                    Сохранить изменения
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                    Отмена
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
 
       <footer className="border-t border-border mt-16 py-12 bg-secondary/20">
