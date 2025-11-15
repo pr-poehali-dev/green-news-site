@@ -184,9 +184,7 @@ export default function Index() {
                 <Icon name="Leaf" size={24} className="text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-primary" style={{ fontFamily: 'Cormorant, serif' }}>
-                  Зелёный вестник
-                </h1>
+                <h1 className="text-3xl font-bold text-primary" style={{ fontFamily: 'Cormorant, serif' }}>Честные Новости</h1>
                 <p className="text-xs text-muted-foreground">Новости, события, аналитика</p>
               </div>
             </div>
