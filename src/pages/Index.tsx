@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
 
 type UserRole = "reader" | "moderator" | "admin";
 
@@ -38,7 +41,7 @@ interface NewsItem {
   views?: number;
 }
 
-const mockNews: NewsItem[] = [
+const initialNews: NewsItem[] = [
   {
     id: "1",
     type: "news",
@@ -137,6 +140,15 @@ export default function Index() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [news, setNews] = useState<NewsItem[]>(initialNews);
+  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false);
+  const [newContent, setNewContent] = useState({
+    type: "news" as NewsItem["type"],
+    title: "",
+    excerpt: "",
+    category: "",
+    image: ""
+  });
 
   const handleLogin = () => {
     setCurrentUser({
@@ -163,7 +175,45 @@ export default function Index() {
     setName("");
   };
 
-  const filteredNews = mockNews.filter(item => {
+  const handlePublishContent = () => {
+    if (!newContent.title || !newContent.excerpt || !newContent.category) {
+      toast({
+        title: "Ошибка",
+        description: "Заполните все обязательные поля",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const contentItem: NewsItem = {
+      id: String(Date.now()),
+      type: newContent.type,
+      title: newContent.title,
+      excerpt: newContent.excerpt,
+      category: newContent.category,
+      image: newContent.image || "https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?w=600",
+      author: currentUser?.name || "Редакция",
+      date: new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }),
+      views: 0
+    };
+
+    setNews([contentItem, ...news]);
+    setIsPublishDialogOpen(false);
+    setNewContent({
+      type: "news",
+      title: "",
+      excerpt: "",
+      category: "",
+      image: ""
+    });
+
+    toast({
+      title: "Успешно опубликовано!",
+      description: `${newContent.type === "news" ? "Новость" : newContent.type === "article" ? "Статья" : newContent.type === "video" ? "Видео" : newContent.type === "photo" ? "Фоторепортаж" : newContent.type === "poster" ? "Афиша" : "Прогноз погоды"} добавлена на портал`
+    });
+  };
+
+  const filteredNews = news.filter(item => {
     if (activeTab === "main") return true;
     if (activeTab === "video") return item.type === "video";
     if (activeTab === "regional") return item.category !== "Видео";
@@ -171,7 +221,7 @@ export default function Index() {
     return true;
   });
 
-  const featuredNews = mockNews.find(item => item.featured);
+  const featuredNews = news.find(item => item.featured);
   const regularNews = filteredNews.filter(item => !item.featured);
 
   return (
@@ -375,23 +425,94 @@ export default function Index() {
                     Создавайте и публикуйте новости, статьи, видео, фоторепортажи, афиши и прогнозы погоды
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm">
-                      <Icon name="FileText" size={16} className="mr-2" />
-                      Новая статья
-                    </Button>
-                    <Button variant="outline" size="sm">
+                    <Dialog open={isPublishDialogOpen} onOpenChange={setIsPublishDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="default" size="sm" onClick={() => setNewContent({ ...newContent, type: "article" })}>
+                          <Icon name="FileText" size={16} className="mr-2" />
+                          Новая статья
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle>Опубликовать контент</DialogTitle>
+                          <DialogDescription>
+                            Заполните информацию о публикации
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="content-type">Тип контента</Label>
+                            <Select value={newContent.type} onValueChange={(value: NewsItem["type"]) => setNewContent({ ...newContent, type: value })}>
+                              <SelectTrigger id="content-type">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="news">Новость</SelectItem>
+                                <SelectItem value="article">Статья</SelectItem>
+                                <SelectItem value="video">Видео</SelectItem>
+                                <SelectItem value="photo">Фоторепортаж</SelectItem>
+                                <SelectItem value="poster">Афиша</SelectItem>
+                                <SelectItem value="weather">Погода</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="title">Заголовок *</Label>
+                            <Input
+                              id="title"
+                              placeholder="Введите заголовок"
+                              value={newContent.title}
+                              onChange={(e) => setNewContent({ ...newContent, title: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="excerpt">Краткое описание *</Label>
+                            <Textarea
+                              id="excerpt"
+                              placeholder="Введите краткое описание"
+                              value={newContent.excerpt}
+                              onChange={(e) => setNewContent({ ...newContent, excerpt: e.target.value })}
+                              rows={3}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="category">Категория *</Label>
+                            <Input
+                              id="category"
+                              placeholder="Например: Экология, Спорт, Культура"
+                              value={newContent.category}
+                              onChange={(e) => setNewContent({ ...newContent, category: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="image">URL изображения (опционально)</Label>
+                            <Input
+                              id="image"
+                              placeholder="https://example.com/image.jpg"
+                              value={newContent.image}
+                              onChange={(e) => setNewContent({ ...newContent, image: e.target.value })}
+                            />
+                          </div>
+                          <Button className="w-full" onClick={handlePublishContent}>
+                            <Icon name="Send" size={16} className="mr-2" />
+                            Опубликовать
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Button variant="outline" size="sm" onClick={() => { setNewContent({ ...newContent, type: "video" }); setIsPublishDialogOpen(true); }}>
                       <Icon name="Video" size={16} className="mr-2" />
                       Добавить видео
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => { setNewContent({ ...newContent, type: "photo" }); setIsPublishDialogOpen(true); }}>
                       <Icon name="Image" size={16} className="mr-2" />
                       Фоторепортаж
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => { setNewContent({ ...newContent, type: "poster" }); setIsPublishDialogOpen(true); }}>
                       <Icon name="Calendar" size={16} className="mr-2" />
                       Афиша
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => { setNewContent({ ...newContent, type: "weather" }); setIsPublishDialogOpen(true); }}>
                       <Icon name="Cloud" size={16} className="mr-2" />
                       Погода
                     </Button>
