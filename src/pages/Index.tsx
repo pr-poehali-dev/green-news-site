@@ -43,18 +43,6 @@ interface NewsItem {
 
 const initialNews: NewsItem[] = [
   {
-    id: "1",
-    type: "news",
-    title: "Экологическая инициатива набирает обороты в регионе",
-    excerpt: "Местные власти объявили о масштабной программе озеленения городских районов с акцентом на создание зеленых коридоров.",
-    category: "Экология",
-    image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800",
-    author: "Мария Зеленова",
-    date: "15 ноября 2025",
-    featured: true,
-    views: 2840
-  },
-  {
     id: "2",
     type: "article",
     title: "Как изменилась городская среда за последние 5 лет",
@@ -412,12 +400,33 @@ export default function Index() {
 
       <main className="container mx-auto px-4 py-8">
         {activeTab === "main" && featuredNews && (
-          <Card className="mb-12 overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="mb-12 overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow group">
             <div className="grid md:grid-cols-2 gap-0">
               <div 
-                className="h-[400px] md:h-auto bg-cover bg-center"
+                className="h-[400px] md:h-auto bg-cover bg-center relative"
                 style={{ backgroundImage: `url(${featuredNews.image})` }}
-              />
+              >
+                {currentUser?.role === "admin" && (
+                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-8 w-8 p-0"
+                      onClick={() => openEditDialog(featuredNews)}
+                    >
+                      <Icon name="Pencil" size={14} />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleDeleteContent(featuredNews.id)}
+                    >
+                      <Icon name="Trash2" size={14} />
+                    </Button>
+                  </div>
+                )}
+              </div>
               <CardContent className="p-8 md:p-12 flex flex-col justify-center bg-secondary/30">
                 <Badge className="w-fit mb-4 bg-primary text-white">{featuredNews.category}</Badge>
                 <h2 className="text-4xl md:text-5xl font-bold mb-4 leading-tight" style={{ fontFamily: 'Cormorant, serif' }}>
